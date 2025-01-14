@@ -27,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import com.example.moviesapp.R
 import com.example.moviesapp.domain.model.Movie
 import com.example.moviesapp.presentation.getYearFromReleaseDate
 import com.example.moviesapp.utils.Constants
@@ -51,7 +52,12 @@ fun MovieViewItem(item: Movie, modifier: Modifier = Modifier) {
                         .fillMaxSize()
                         .clip(RoundedCornerShape(10.dp)),
                     contentScale = ContentScale.FillBounds,
-                    model = Constants.IMAGE_BASE_URL + item.posterPath,
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(Constants.IMAGE_BASE_URL + item.posterPath)
+                        .crossfade(true)
+                        .error(R.drawable.errorholder)
+                        .placeholder(android.R.drawable.menu_frame)
+                        .build(),
                     contentDescription = "Movie Poster"
                 )
             }

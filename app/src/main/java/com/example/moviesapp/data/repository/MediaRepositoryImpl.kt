@@ -26,47 +26,55 @@ class MediaRepositoryImpl @Inject constructor(
     override fun getMoviesByType(
         language: String,
         type: String,
-        page : Int,
+        page: Int,
         fetchFormRemote: Boolean
     ): Flow<Resource<List<Movie>>> = flow {
         emit(Resource.Loading())
 
-        if (fetchFormRemote) {
-            try {
-                val response = when (type) {
-                    "now_playing" -> api.getNowPlayingMovies(language = language, page = page)
-                    "upcoming" -> api.getUpcomingMovies(language = language, page = page)
-                    "popular" -> api.getPopularMovies(language = language, page = page)
-                    "top_rated" -> api.getTopRatedMovies(language = language, page = page)
-                    else -> api.getNowPlayingMovies(language = language, page = page)
-                }
+        val localMovies = movieDao.getMoviesByType(type)
+        emit(Resource.Success(localMovies.map { it.toMovie() }))
 
-                if (response.isSuccessful) {
-                    response.body()?.let { movieDto ->
-                        movieDao.clearMoviesByType(type)
-                        movieDao.upsertAll(movieDto.toMovieEntity(type))
-                        emit(Resource.Success(movieDao.getMoviesByType(type).map { it.toMovie() }))
-                    }
-                }
-            } catch (e: IOException) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-                emit(Resource.Error(message = "Couldn't load data"))
+        val shouldLoadFromCache = localMovies.isNotEmpty() && !fetchFormRemote
 
-            } catch (e : HttpException) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+        if (shouldLoadFromCache) {
+            emit(Resource.Loading(isLoading = false))
+            return@flow
+        }
 
-                emit(Resource.Error(message = "Couldn't load data"))
 
-            } catch (e : Exception) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-                emit(Resource.Error(message = "Couldn't load data"))
+        try {
+            val response = when (type) {
+                "now_playing" -> api.getNowPlayingMovies(language = language, page = page)
+                "upcoming" -> api.getUpcomingMovies(language = language, page = page)
+                "popular" -> api.getPopularMovies(language = language, page = page)
+                "top_rated" -> api.getTopRatedMovies(language = language, page = page)
+                else -> api.getNowPlayingMovies(language = language, page = page)
             }
+
+            if (response.isSuccessful) {
+                response.body()?.let { movieDto ->
+                    movieDao.clearMoviesByType(type)
+                    movieDao.upsertAll(movieDto.toMovieEntity(type))
+                    emit(Resource.Success(movieDao.getMoviesByType(type).map { it.toMovie() }))
+                }
+            }
+        } catch (e: IOException) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+            emit(Resource.Error(message = "Couldn't load data"))
+
+        } catch (e: HttpException) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+
+            emit(Resource.Error(message = "Couldn't load data"))
+
+        } catch (e: Exception) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+            emit(Resource.Error(message = "Couldn't load data"))
         }
-        else{
-            emit(Resource.Success(movieDao.getMoviesByType(type).map { it.toMovie() }))
-        }
+
 
     }
+
 
     override fun getSeriesByType(
         language: String,
@@ -76,42 +84,51 @@ class MediaRepositoryImpl @Inject constructor(
     ): Flow<Resource<List<Series>>> = flow {
         emit(Resource.Loading())
 
-        if (fetchFormRemote) {
-            try {
-                val response = when (type) {
-                    "airing_today" -> api.getAiringTodaySeries(language = language, page = page)
-                    "on_the_air" -> api.getOnTheAirSeries(language = language, page = page)
-                    "popular" -> api.getPopularSeries(language = language, page = page)
-                    "top_rated" -> api.getTopRatedSeries(language = language, page = page)
-                    else -> api.getAiringTodaySeries(language = language, page = page)
+        val localSeries = seriesDao.getSeriesByType(type)
 
-                }
+        emit(Resource.Success(localSeries.map { it.toSeries() }))
 
-                if (response.isSuccessful) {
-                    response.body()?.let { seriesDto ->
-                        seriesDao.clearSeriesByType(type)
-                        seriesDao.upsertAll(seriesDto.toSeriesEntity(type))
-                        emit(Resource.Success(seriesDao.getSeriesByType(type).map { it.toSeries() }))
+        val shouldLoadFromCache = localSeries.isNotEmpty() && !fetchFormRemote
 
-                    }
-                }
-            } catch (e: IOException) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-                emit(Resource.Error(message = "Couldn't load data"))
+        if (shouldLoadFromCache) {
+            emit(Resource.Loading(isLoading = false))
+            return@flow
+        }
 
-            } catch (e : HttpException) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-                emit(Resource.Error(message = "Couldn't load data"))
+        try {
+            val response = when (type) {
+                "airing_today" -> api.getAiringTodaySeries(language = language, page = page)
+                "on_the_air" -> api.getOnTheAirSeries(language = language, page = page)
+                "popular" -> api.getPopularSeries(language = language, page = page)
+                "top_rated" -> api.getTopRatedSeries(language = language, page = page)
+                else -> api.getAiringTodaySeries(language = language, page = page)
 
-            } catch (e : Exception) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-                emit(Resource.Error(message = "Couldn't load data"))
             }
-        }
-        else{
-            emit(Resource.Success(seriesDao.getSeriesByType(type).map { it.toSeries() }))
 
+            if (response.isSuccessful) {
+                response.body()?.let { seriesDto ->
+                    seriesDao.clearSeriesByType(type)
+                    seriesDao.upsertAll(seriesDto.toSeriesEntity(type))
+                    emit(
+                        Resource.Success(
+                            seriesDao.getSeriesByType(type).map { it.toSeries() })
+                    )
+
+                }
+            }
+        } catch (e: IOException) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+            emit(Resource.Error(message = "Couldn't load data"))
+
+        } catch (e: HttpException) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+            emit(Resource.Error(message = "Couldn't load data"))
+
+        } catch (e: Exception) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+            emit(Resource.Error(message = "Couldn't load data"))
         }
+
 
     }
 }

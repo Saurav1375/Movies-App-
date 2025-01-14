@@ -39,37 +39,38 @@ class MediaDetailsRepositoryImpl @Inject constructor(
     ): Flow<Resource<MovieDetails>> = flow {
         emit(Resource.Loading())
 
-        if (fetchFormRemote) {
-            try {
-                val response = api.getMovieDetails(movieId, language)
-                if (response.isSuccessful) {
-                    response.body()?.let { movieDetailsDto ->
-                        val movieDetailsEntity = movieDetailsDto.toMovieDetailsEntity()
-                        movieDetailsDao.deleteMovieDetailsById(movieDetailsEntity.id)
-                        movieDetailsDao.insertMovieDetails(listOf(movieDetailsEntity))
-                        emit(Resource.Success(movieDetailsEntity.toMovieDetails()))
-                    }
-                }
-            } catch (e: IOException) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-                emit(Resource.Error(message = "Couldn't load data"))
+        val localMovieDetails = movieDetailsDao.getMovieDetailsById(movieId)
+        localMovieDetails?.let { emit(Resource.Success(it.toMovieDetails())) }
 
-            } catch (e: HttpException) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-
-                emit(Resource.Error(message = "Couldn't load data"))
-
-            } catch (e: Exception) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-                emit(Resource.Error(message = "Couldn't load data"))
-            }
-        } else {
-            val movieDetailsEntity = movieDetailsDao.getMovieDetailsById(movieId)
-            if (movieDetailsEntity != null) {
-                emit(Resource.Success(movieDetailsEntity.toMovieDetails()))
-            }
-
+        val shouldLoadFromCache = localMovieDetails != null && !fetchFormRemote
+        if (shouldLoadFromCache) {
+            emit(Resource.Loading(isLoading = false))
+            return@flow
         }
+        try {
+            val response = api.getMovieDetails(movieId, language)
+            if (response.isSuccessful) {
+                response.body()?.let { movieDetailsDto ->
+                    val movieDetailsEntity = movieDetailsDto.toMovieDetailsEntity()
+                    movieDetailsDao.deleteMovieDetailsById(movieDetailsEntity.id)
+                    movieDetailsDao.insertMovieDetails(listOf(movieDetailsEntity))
+                    emit(Resource.Success(movieDetailsDao.getMovieDetailsById(movieDetailsEntity.id)?.toMovieDetails()!!))
+                }
+            }
+        } catch (e: IOException) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+            emit(Resource.Error(message = "Couldn't load data"))
+
+        } catch (e: HttpException) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+
+            emit(Resource.Error(message = "Couldn't load data"))
+
+        } catch (e: Exception) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+            emit(Resource.Error(message = "Couldn't load data"))
+        }
+
 
     }
 
@@ -79,35 +80,37 @@ class MediaDetailsRepositoryImpl @Inject constructor(
         fetchFormRemote: Boolean
     ): Flow<Resource<SeriesDetails>> = flow {
         emit(Resource.Loading())
-        if (fetchFormRemote) {
-            try {
-                val response = api.getSeriesDetails(seriesId, language)
-                if (response.isSuccessful) {
-                    response.body()?.let { seriesDetailsDto ->
-                        val seriesDetailsEntity = seriesDetailsDto.toSeriesDetailsEntity()
-                        seriesDetailsDao.deleteSeriesDetailsById(seriesDetailsEntity.id)
-                        seriesDetailsDao.insertSeriesDetails(listOf(seriesDetailsEntity))
-                        emit(Resource.Success(seriesDetailsEntity.toSeriesDetails()))
-                    }
+        val localSeriesDetails = seriesDetailsDao.getSeriesDetailsById(seriesId)
+        if (localSeriesDetails != null) {
+            emit(Resource.Success(localSeriesDetails.toSeriesDetails()))
+        }
+        val shouldLoadFromCache = localSeriesDetails != null && !fetchFormRemote
+        if (shouldLoadFromCache) {
+            emit(Resource.Loading(isLoading = false))
+            return@flow
+        }
+        try {
+            val response = api.getSeriesDetails(seriesId, language)
+            if (response.isSuccessful) {
+                response.body()?.let { seriesDetailsDto ->
+                    val seriesDetailsEntity = seriesDetailsDto.toSeriesDetailsEntity()
+                    seriesDetailsDao.deleteSeriesDetailsById(seriesDetailsEntity.id)
+                    seriesDetailsDao.insertSeriesDetails(listOf(seriesDetailsEntity))
+                    emit(Resource.Success(seriesDetailsEntity.toSeriesDetails()))
                 }
-            } catch (e: IOException) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-                emit(Resource.Error(message = "Couldn't load data"))
-
-            } catch (e: HttpException) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-
-                emit(Resource.Error(message = "Couldn't load data"))
-
-            } catch (e: Exception) {
-                Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
-                emit(Resource.Error(message = "Couldn't load data"))
             }
-        } else {
-            val seriesDetailsEntity = seriesDetailsDao.getSeriesDetailsById(seriesId)
-            if (seriesDetailsEntity != null) {
-                emit(Resource.Success(seriesDetailsEntity.toSeriesDetails()))
-            }
+        } catch (e: IOException) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+            emit(Resource.Error(message = "Couldn't load data"))
+
+        } catch (e: HttpException) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+
+            emit(Resource.Error(message = "Couldn't load data"))
+
+        } catch (e: Exception) {
+            Log.e("MovieRepositoryImpl", "Exception: ${e.message}")
+            emit(Resource.Error(message = "Couldn't load data"))
         }
     }
 
@@ -205,7 +208,10 @@ class MediaDetailsRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getSeriesRecommendations(seriesId: Int, page: Int): Resource<List<Series>> {
+    override suspend fun getSeriesRecommendations(
+        seriesId: Int,
+        page: Int
+    ): Resource<List<Series>> {
         return try {
             val response = api.getSeriesRecommendations(
                 seriesId = seriesId,

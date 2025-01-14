@@ -27,8 +27,8 @@ class HomeScreenViewModel @Inject constructor(
     private val _mediaType = mutableStateOf(MediaType.MOVIE)
 
     init {
-        getAllMoviesSection()
-        getAllSeriesSection()
+        getAllMoviesSection(fetchFromRemote = true)
+        getAllSeriesSection(fetchFromRemote = true)
     }
 
 
@@ -80,7 +80,7 @@ class HomeScreenViewModel @Inject constructor(
                         moviesRepository.getMoviesByType(
                             language,
                             "popular",
-                            Random.nextInt(1,6),
+                            Random.nextInt(1, 6),
                             fetchFromRemote
                         )
                     }
@@ -88,7 +88,7 @@ class HomeScreenViewModel @Inject constructor(
                     moviesRepository.getMoviesByType(
                         language,
                         "upcoming",
-                        Random.nextInt(1,6),
+                        Random.nextInt(1, 6),
                         fetchFromRemote
                     )
                 }
@@ -96,7 +96,7 @@ class HomeScreenViewModel @Inject constructor(
                     moviesRepository.getMoviesByType(
                         language,
                         "top_rated",
-                        Random.nextInt(1,6),
+                        Random.nextInt(1, 6),
                         fetchFromRemote
                     )
                 }
@@ -229,7 +229,7 @@ class HomeScreenViewModel @Inject constructor(
                     moviesRepository.getSeriesByType(
                         language,
                         "airing_today",
-                        Random.nextInt(1,6),
+                        Random.nextInt(1, 6),
                         fetchFormRemote = fetchFromRemote
                     )
                 }
@@ -238,7 +238,7 @@ class HomeScreenViewModel @Inject constructor(
                     moviesRepository.getSeriesByType(
                         language,
                         "on_the_air",
-                        Random.nextInt(1,6),
+                        Random.nextInt(1, 6),
                         fetchFormRemote = fetchFromRemote
                     )
                 }
@@ -247,7 +247,7 @@ class HomeScreenViewModel @Inject constructor(
                     moviesRepository.getSeriesByType(
                         language,
                         "popular",
-                        Random.nextInt(1,6),
+                        Random.nextInt(1, 6),
                         fetchFormRemote = fetchFromRemote
                     )
                 }
@@ -256,7 +256,7 @@ class HomeScreenViewModel @Inject constructor(
                     moviesRepository.getSeriesByType(
                         language,
                         "top_rated",
-                        Random.nextInt(1,3) ,
+                        Random.nextInt(1, 3),
                         fetchFormRemote = fetchFromRemote
                     )
                 }
@@ -296,7 +296,7 @@ class HomeScreenViewModel @Inject constructor(
                                 seriesType = state.value.seriesType.copy(
                                     onTheAirSeries = result.data ?: emptyList(),
 
-                                ),
+                                    ),
                                 isLoading = false
                             )
                         }
@@ -314,7 +314,7 @@ class HomeScreenViewModel @Inject constructor(
                             _state.value = state.value.copy(
                                 isLoading = result.isLoading,
 
-                            )
+                                )
                         }
                     }
                 }
@@ -389,8 +389,10 @@ class HomeScreenViewModel @Inject constructor(
     // Add a function to refresh the data
     private fun refreshMovies() {
         _state.value = state.value.copy(isRefreshing = true)
-        getAllMoviesSection(fetchFromRemote = true)
-        getAllSeriesSection(fetchFromRemote = true)
+        if (_state.value.mediaType == MediaType.MOVIE) getAllMoviesSection(fetchFromRemote = true)
+        else getAllSeriesSection(fetchFromRemote = true)
+
+        _state.value = state.value.copy(isRefreshing = false)
     }
 
 }

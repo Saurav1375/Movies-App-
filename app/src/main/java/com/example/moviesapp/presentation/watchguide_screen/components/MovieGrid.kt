@@ -102,7 +102,7 @@ fun MovieGridItem(
                         .data(Constants.IMAGE_BASE_URL + item.posterPath)
                         .crossfade(enable = true)
                         .placeholder(android.R.drawable.ic_menu_gallery)
-                        .error(android.R.drawable.ic_menu_gallery)
+                        .error(R.drawable.errorholder)
                         .build(),
                     contentDescription = "Movie Poster"
                 )

@@ -25,8 +25,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,10 +41,14 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.moviesapp.presentation.home_screen.HomeEvents
 import com.example.moviesapp.presentation.home_screen.components.MoviesSection
+import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsEvent
 import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsState
 import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsViewModel
 import com.example.moviesapp.presentation.profile_screen.UserDataState
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,6 +66,10 @@ fun MovieDetailsScreen(
 
     var showAddDialog by remember { mutableStateOf(false) }
     var youTubePlayerView by remember { mutableStateOf<YouTubePlayerView?>(null) }
+    val swipeRefreshState = rememberSwipeRefreshState(
+        isRefreshing = mediaDetailsState.isRefreshing
+    )
+
 
     val mediaList = userDetailState.userData.mediaLists
 
@@ -79,58 +90,63 @@ fun MovieDetailsScreen(
 
     Box(modifier = modifier.fillMaxSize()) {
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(bottom = 60.dp)
-                .align(Alignment.BottomEnd)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            mediaDetailsState.movieDetails?.let {
-                BackdropImageView(
-                    it,
-                    Modifier
-                        .height(LocalConfiguration.current.screenHeightDp.dp / 1.7f)
-                        .fillMaxWidth()
-                        .clickable { showAddDialog = true }
-                )
-            }
+        SwipeRefresh(
+            state = swipeRefreshState,
+            onRefresh = { viewModel.OnEvent(MediaDetailsEvent.OnRefresh) }
+        ){
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(bottom = 60.dp)
+                    .align(Alignment.BottomEnd)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                mediaDetailsState.movieDetails?.let {
+                    BackdropImageView(
+                        it,
+                        Modifier
+                            .height(LocalConfiguration.current.screenHeightDp.dp / 1.7f)
+                            .fillMaxWidth()
+                            .clickable { showAddDialog = true }
+                    )
+                }
 
-            // Header
-            mediaDetailsState.movieDetails?.let {
-                HeaderDetails(
-                    it,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+                // Header
+                mediaDetailsState.movieDetails?.let {
+                    HeaderDetails(
+                        it,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
-            // Cast section
-            mediaDetailsState.credits?.cast?.let {
-                CastSection(
-                    it,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
+                // Cast section
+                mediaDetailsState.credits?.cast?.let {
+                    CastSection(
+                        it,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
-            // Trailer section
-            mediaDetailsState.videoUrl?.let { id ->
-                TrailerView(
-                    videoId = id,
-                    onYouTubePlayerCreated = { youTubePlayerView = it }
-                )
-            }
+                // Trailer section
+                mediaDetailsState.videoUrl?.let { id ->
+                    TrailerView(
+                        videoId = id,
+                        onYouTubePlayerCreated = { youTubePlayerView = it }
+                    )
+                }
 
-            // Recommendations section
-            if (mediaDetailsState.movieRecommendations.isNotEmpty()) {
-                MoviesSection(
-                    "Recommended",
-                    mediaDetailsState.movieRecommendations,
-                    onClick = onItemClick,
-                    modifier = Modifier.padding(16.dp)
-                )
-            }
+                // Recommendations section
+                if (mediaDetailsState.movieRecommendations.isNotEmpty()) {
+                    MoviesSection(
+                        "Recommended",
+                        mediaDetailsState.movieRecommendations,
+                        onClick = onItemClick,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
 
+            }
         }
 
         // Back navigation and Add button

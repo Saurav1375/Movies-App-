@@ -29,8 +29,12 @@ compose-material = "1.7.6"
 compose-shimmer = "1.2.0"
 firebaseDatabase = "21.0.0"
 accompanist-nav = "0.31.3-beta"
+accompanist = "0.33.0-alpha"
+swiperefreshlayout = "1.2.0-alpha01"
 
 [libraries]
+androidx-swiperefreshlayout = { group = "androidx.swiperefreshlayout", name = "swiperefreshlayout", version.ref = "swiperefreshlayout" }
+accompanist-swiperefresh = { module = "com.google.accompanist:accompanist-swiperefresh", version.ref = "accompanist" }
 compose-shimmer = { group = "com.valentinilk.shimmer", name = "compose-shimmer", version.ref = "compose-shimmer" }
 accompanist-navigation-animation = {group = "com.google.accompanist", name = "accompanist-navigation-animation", version.ref = "accompanist-nav"}
 androidx-compose-material-icons-core = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "compose-material" }

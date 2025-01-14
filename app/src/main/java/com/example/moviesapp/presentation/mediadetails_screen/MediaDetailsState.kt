@@ -14,5 +14,6 @@ data class MediaDetailsState(
     val credits: Credits? = null,
     val isLoading: Boolean = false,
     val videoUrl: String? = null,
+    val isRefreshing: Boolean = false,
     val error: String? = null
 )

@@ -12,14 +12,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.moviesapp.domain.model.MediaType
 import com.example.moviesapp.presentation.home_screen.components.FilterButton
 import com.example.moviesapp.presentation.home_screen.components.MoviesSection
@@ -27,8 +34,11 @@ import com.example.moviesapp.presentation.home_screen.components.SeriesSection
 import com.example.moviesapp.presentation.home_screen.components.TypeChipBar
 import com.example.moviesapp.presentation.home_screen.components.UserInfoBar
 import com.example.moviesapp.presentation.shared.SharedUserViewModel
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.SwipeRefreshIndicator
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun HomeScreen(
@@ -42,63 +52,116 @@ fun HomeScreen(
     ) {
         val user by sharedUserViewModel.user.collectAsState()
         val state by homeScreenViewModel.state.collectAsState()
+        val swipeRefreshState = rememberSwipeRefreshState(
+            isRefreshing = state.isRefreshing
+        )
         val scrollState = rememberScrollState()
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+        SwipeRefresh(
+            state = swipeRefreshState,
+            onRefresh = { homeScreenViewModel.onEvents(HomeEvents.Refresh) },
 
-        ) {
-            UserInfoBar(
-                user = user, modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            )
+            ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
 
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
             ) {
 
-                TypeChipBar(
-                    state = state,
-                    viewModel = homeScreenViewModel,
-                    modifier = Modifier
-                        .weight(8f)
+
+                UserInfoBar(
+                    user = user, modifier = Modifier
+                        .fillMaxWidth()
                         .padding(8.dp)
                 )
 
-                FilterButton(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .weight(2f),
-                    onClick = {
-                        homeScreenViewModel.onEvents(HomeEvents.OnLanguageChange("hi-IN"))
-                    }
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+
+                    TypeChipBar(
+                        state = state,
+                        viewModel = homeScreenViewModel,
+                        modifier = Modifier
+                            .weight(8f)
+                            .padding(8.dp)
+                    )
+
+                    FilterButton(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .weight(2f),
+                        onClick = {
+                            homeScreenViewModel.onEvents(HomeEvents.OnLanguageChange("hi-IN"))
+                        }
+                    )
+
+                }
+
+
+
+                if (state.mediaType == MediaType.MOVIE) {
+                    MoviesSection(
+                        "In Theatres",
+                        state.movieType.theatreMovie,
+                        isLoading = state.isLoading,
+                        onClick = onItemClick
+                    )
+                    MoviesSection(
+                        "Popular",
+                        state.movieType.popularMovies,
+                        isLoading = state.isLoading,
+                        onClick = onItemClick
+                    )
+                    MoviesSection(
+                        "Upcoming",
+                        state.movieType.upcomingMovies,
+                        isLoading = state.isLoading,
+                        onClick = onItemClick
+                    )
+                    MoviesSection(
+                        "Top Rated",
+                        state.movieType.topRatedMovies,
+                        isLoading = state.isLoading,
+                        onClick = onItemClick
+                    )
+
+                } else {
+                    SeriesSection(
+                        "Airing Today",
+                        state.seriesType.airingTodaySeries,
+                        isLoading = state.isLoading,
+                        onClick = onItemClick
+                    )
+                    SeriesSection(
+                        "On The Air",
+                        state.seriesType.onTheAirSeries,
+                        isLoading = state.isLoading,
+                        onClick = onItemClick
+                    )
+                    SeriesSection(
+                        "Popular",
+                        state.seriesType.popularSeries,
+                        isLoading = state.isLoading,
+                        onClick = onItemClick
+                    )
+                    SeriesSection(
+                        "Top Rated",
+                        state.seriesType.topRatedSeries,
+                        isLoading = state.isLoading,
+                        onClick = onItemClick
+                    )
+
+                }
+
 
             }
-
-
-
-            if (state.mediaType == MediaType.MOVIE) {
-                MoviesSection("In Theatres", state.movieType.theatreMovie,isLoading = state.isLoading, onClick = onItemClick)
-                MoviesSection("Popular", state.movieType.popularMovies,isLoading = state.isLoading, onClick = onItemClick)
-                MoviesSection("Upcoming", state.movieType.upcomingMovies,isLoading = state.isLoading, onClick = onItemClick)
-                MoviesSection("Top Rated", state.movieType.topRatedMovies,isLoading = state.isLoading, onClick = onItemClick)
-
-            } else {
-                SeriesSection("Airing Today", state.seriesType.airingTodaySeries,isLoading = state.isLoading, onClick = onItemClick)
-                SeriesSection("On The Air", state.seriesType.onTheAirSeries,isLoading = state.isLoading, onClick = onItemClick)
-                SeriesSection("Popular", state.seriesType.popularSeries,isLoading = state.isLoading, onClick = onItemClick)
-                SeriesSection("Top Rated", state.seriesType.topRatedSeries,isLoading = state.isLoading, onClick = onItemClick)
-
-            }
-
 
         }
+
 
     }
 }

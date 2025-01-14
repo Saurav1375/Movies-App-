@@ -68,11 +68,8 @@ class MediaDetailsViewModel @Inject constructor(
     val mediaType = savedStateHandle.get<String>("mediaType")
 
     init {
-
-        println("mediaId: $mediaId, mediaType: $mediaType")
-
         if (mediaId != null && mediaType != null) {
-            fetchMediaDetails(mediaId, mediaType)
+            fetchMediaDetails(mediaId, mediaType, fetchFromRemote = true)
             viewModelScope.launch(Dispatchers.IO) {
                 val videoResult = async { fetchMediaVideo(mediaId, mediaType) }
                 val recommendationsResult = async { fetchMediaRecommendations(mediaId, mediaType) }
@@ -105,14 +102,39 @@ class MediaDetailsViewModel @Inject constructor(
                     }
                 }
             }
+
+            is MediaDetailsEvent.OnRefresh -> {
+                _mediaDetailsState.update {
+                    it.copy(isRefreshing = true)
+                }
+                if (mediaId != null && mediaType != null) {
+                    fetchMediaDetails(mediaId, mediaType, fetchFromRemote = true)
+                    viewModelScope.launch(Dispatchers.IO) {
+                        val videoResult = async { fetchMediaVideo(mediaId, mediaType) }
+                        val recommendationsResult = async { fetchMediaRecommendations(mediaId, mediaType) }
+                        val creditsResult =
+                            async { fetchCreditsDetails(MediaType.valueOf(mediaType), mediaId) }
+                        videoResult.await()
+                        recommendationsResult.await()
+                        creditsResult.await()
+
+                        _mediaDetailsState.update {
+                            it.copy(isRefreshing = false)
+                        }
+
+                    }
+                }
+
+
+            }
         }
 
     }
 
-    private fun fetchMediaDetails(mediaId: Int, mediaType: String) {
+    private fun fetchMediaDetails(mediaId: Int, mediaType: String, fetchFromRemote: Boolean = false) {
         when (mediaType) {
-            "MOVIE" -> fetchMovieDetails(mediaId)
-            "SERIES" -> fetchSeriesDetails(mediaId)
+            "MOVIE" -> fetchMovieDetails(mediaId, fetchFormRemote = fetchFromRemote)
+            "SERIES" -> fetchSeriesDetails(mediaId, fetchFormRemote = fetchFromRemote)
         }
     }
 
@@ -134,7 +156,7 @@ class MediaDetailsViewModel @Inject constructor(
     private fun fetchMovieDetails(
         movieId: Int,
         language: String = "en-US",
-        fetchFormRemote: Boolean = true
+        fetchFormRemote: Boolean = false
     ) {
 
         viewModelScope.launch {
@@ -204,7 +226,9 @@ class MediaDetailsViewModel @Inject constructor(
         viewModelScope.launch {
             when (val result = mediaDetailsRepository.getMovieRecommendations(movieId, page)) {
                 is Resource.Success -> {
-                    _movieRecommendationsState.value = result.data ?: emptyList()
+                    _movieRecommendationsState.update { currentList ->
+                        result.data ?: currentList
+                    }
                 }
 
                 is Resource.Error -> {
@@ -221,7 +245,7 @@ class MediaDetailsViewModel @Inject constructor(
     private fun fetchSeriesDetails(
         seriesId: Int,
         language: String = "en-US",
-        fetchFormRemote: Boolean = true
+        fetchFormRemote: Boolean = false
     ) {
         viewModelScope.launch {
             mediaDetailsRepository.getSeriesDetailsById(
@@ -330,7 +354,7 @@ class MediaDetailsViewModel @Inject constructor(
 
     }
 
-    fun addMediaToWatchListByWatchListId(watchListId: String, media: Media, userId: String) {
+    private fun addMediaToWatchListByWatchListId(watchListId: String, media: Media, userId: String) {
         viewModelScope.launch {
             repository.addMediaToListByListId(watchListId, media, userId)
         }

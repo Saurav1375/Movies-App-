@@ -3,6 +3,7 @@ package com.example.moviesapp.presentation.watchguide_screen
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.example.moviesapp.domain.model.MediaType
@@ -39,7 +40,6 @@ class WatchGuideViewmodel @Inject constructor(
     private val _mediaType = mutableStateOf(MediaType.MOVIE)
     private val _searchQuery = MutableStateFlow("")
     val searchQuery = _searchQuery.asStateFlow()
-
     @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
     val searchMovieResults = searchQuery
         .debounce(300L)
@@ -68,8 +68,15 @@ class WatchGuideViewmodel @Inject constructor(
 
 
     init {
-        fetchMoviesByGenre(fetchFromRemote = true)
-        fetchSeriesByGenre(fetchFromRemote = true)
+        viewModelScope.launch {
+            val movieResult =  async {  fetchMoviesByGenre(fetchFromRemote = true) }
+            val seriesResult = async {   fetchSeriesByGenre(fetchFromRemote = true) }
+
+            movieResult.await()
+            seriesResult.await()
+        }
+
+
     }
 
     fun onEvents(event: WatchGuideEvents) {
@@ -82,8 +89,21 @@ class WatchGuideViewmodel @Inject constructor(
             }
 
             is WatchGuideEvents.Refresh -> {
-                fetchMoviesByGenre(fetchFromRemote = true)
-                fetchSeriesByGenre(fetchFromRemote = true)
+                _watchGuideState.update {
+                    it.copy(isRefreshing = true)
+                }
+
+                viewModelScope.launch {
+                    val fetchMovies = async { fetchMoviesByGenre(fetchFromRemote = true) }
+                    val fetchSeries = async { fetchSeriesByGenre(fetchFromRemote = true) }
+
+                    fetchMovies.await()
+                    fetchSeries.await()
+
+                    _watchGuideState.update {
+                        it.copy(isRefreshing = false)
+                    }
+                }
             }
 
             is WatchGuideEvents.OnSearchQueryChange -> {

@@ -59,6 +59,8 @@ fun getApiKey(name : String): String {
 }
 
 dependencies {
+    implementation(libs.androidx.swiperefreshlayout)
+    implementation(libs.accompanist.swiperefresh)
     implementation(libs.paging.compose)
     implementation(libs.compose.shimmer)
     implementation(libs.accompanist.navigation.animation)

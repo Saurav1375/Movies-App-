@@ -5,10 +5,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.example.moviesapp.R
 import com.example.moviesapp.domain.model.MovieDetails
 import com.example.moviesapp.domain.model.SeriesDetails
 import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsState
+import com.example.moviesapp.utils.Constants
 
 @Composable
 fun BackdropImageView(media: Any, modifier: Modifier = Modifier) {
@@ -41,7 +45,12 @@ fun BackdropImageView(media: Any, modifier: Modifier = Modifier) {
         }
 
         AsyncImage(
-            model = imageUrl,
+            model =  ImageRequest.Builder(LocalContext.current)
+                .data(imageUrl)
+                .crossfade(true)
+                .error(R.drawable.errorholder)
+                .placeholder(android.R.drawable.menu_frame)
+                .build(),
             contentDescription = contentDescription,
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
