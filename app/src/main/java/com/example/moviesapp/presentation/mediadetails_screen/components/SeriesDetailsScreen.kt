@@ -29,13 +29,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.example.moviesapp.presentation.home_screen.components.SeriesSection
-import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsState
+import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsUiState
 import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsViewModel
 import com.example.moviesapp.presentation.profile_screen.UserDataState
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
@@ -45,7 +44,7 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTube
 @Composable
 fun SeriesDetailsScreen(
     modifier: Modifier = Modifier,
-    mediaDetailsState: MediaDetailsState,
+    mediaDetailsUiState: MediaDetailsUiState,
     viewModel: MediaDetailsViewModel,
     userDetailState: UserDataState,
     mediaId : Int,
@@ -68,6 +67,7 @@ fun SeriesDetailsScreen(
             mediaLists = mediaList,
             viewModel = viewModel,
             mediaId = mediaId,
+            userId = userDetailState.userData.userId,
             onDismiss = { showAddDialog = false }
         )
     }
@@ -81,7 +81,7 @@ fun SeriesDetailsScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp) // Spacing between elements
         ) {
             // Display the backdrop image if available
-            mediaDetailsState.seriesDetails?.let {
+            mediaDetailsUiState.seriesDetails?.let {
                 BackdropImageView(
                     it,
                     Modifier
@@ -91,7 +91,7 @@ fun SeriesDetailsScreen(
             }
 
             // Display the header details of the series (e.g., title, release date)
-            mediaDetailsState.seriesDetails?.let {
+            mediaDetailsUiState.seriesDetails?.let {
                 HeaderDetails(
                     it,
                     modifier = Modifier.fillMaxWidth()
@@ -99,7 +99,7 @@ fun SeriesDetailsScreen(
             }
 
             // Display the cast section if available
-            mediaDetailsState.credits?.cast?.let {
+            mediaDetailsUiState.credits?.cast?.let {
                 CastSection(
                     it,
                     modifier = Modifier
@@ -108,10 +108,10 @@ fun SeriesDetailsScreen(
             }
 
             // Display the series information bar
-            mediaDetailsState.seriesDetails?.let { SeriesInfoBar(modifier, seriesDetails = it) }
+            mediaDetailsUiState.seriesDetails?.let { SeriesInfoBar(modifier, seriesDetails = it) }
 
             // Display the trailer video if available
-            mediaDetailsState.videoUrl?.let { id ->
+            mediaDetailsUiState.videoUrl?.let { id ->
                 TrailerView(
                     videoId = id,
                     onYouTubePlayerCreated = { youTubePlayerView = it }
@@ -119,10 +119,10 @@ fun SeriesDetailsScreen(
             }
 
             // Display recommendations if available
-            if (mediaDetailsState.seriesRecommendations.isNotEmpty()) {
+            if (mediaDetailsUiState.seriesRecommendations.isNotEmpty()) {
                 SeriesSection(
                     "Recommended",
-                    mediaDetailsState.seriesRecommendations,
+                    mediaDetailsUiState.seriesRecommendations,
                     onClick = onItemClick,
                     modifier = Modifier.padding(16.dp)
                 )

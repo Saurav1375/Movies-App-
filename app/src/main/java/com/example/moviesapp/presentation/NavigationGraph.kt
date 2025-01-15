@@ -34,6 +34,7 @@ import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsScreen
 import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsViewModel
 import com.example.moviesapp.presentation.profile_screen.ProfileScreen
 import com.example.moviesapp.presentation.shared.SharedUserViewModel
+import com.example.moviesapp.presentation.social_screen.SocialScreen
 import com.example.moviesapp.presentation.watchguide_screen.WatchGuideScreen
 
 @OptIn(ExperimentalAnimationApi::class)
@@ -166,6 +167,14 @@ fun NavigationGraph(modifier: Modifier = Modifier, navController: NavHostControl
                     navController.navigate(Screen.MediaDetailsScreen.route + "/$it/$mediaType")
                 }
 
+            }
+
+            composable(
+                route = Screen.SocialScreen.route,
+            ) {
+                SocialScreen{
+
+                }
             }
 
         }

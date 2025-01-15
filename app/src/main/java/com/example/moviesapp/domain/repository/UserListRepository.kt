@@ -17,4 +17,5 @@ interface UserListRepository {
     suspend fun addUserData(userData: UserData, userId: String) : Resource<Unit>
     suspend fun getUserData(userId: String) : Flow<Resource<UserData>>
     suspend fun addInitialLists(userId: String) : Resource<Unit>
+    suspend fun searchFriend(query: String, currentUserId : String) : Flow<Resource<List<UserData>>>
 }

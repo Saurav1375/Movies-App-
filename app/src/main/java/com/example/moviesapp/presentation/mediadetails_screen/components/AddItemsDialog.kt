@@ -37,6 +37,7 @@ fun AddItemsDialog(
     viewModel: MediaDetailsViewModel,
     mediaLists: List<MediaList>,
     mediaId : Int,
+    userId : String,
     modifier: Modifier = Modifier,
     onDismiss: () -> Unit
 ) {
@@ -65,7 +66,7 @@ fun AddItemsDialog(
             OtherMediaView(
                 viewModel = viewModel,
                 mediaId = mediaId,
-                mediaType = mediaLists.firstOrNull{ it.type == ListType.FAVOURITES.name },
+                mediaType = mediaLists.firstOrNull{ it.id == userId+"FAVORITE" },
                 title = "Add to Favourites",
                 icon = Icons.Outlined.FavoriteBorder
             )
@@ -75,7 +76,7 @@ fun AddItemsDialog(
                 icon = Icons.Outlined.Movie,
                 mediaId = mediaId,
                 viewModel = viewModel,
-                mediaType = mediaLists.firstOrNull { it.type == ListType.WATCHED.name },
+                mediaType = mediaLists.firstOrNull { it.id == userId+"WATCHED"},
             )
 
 
@@ -100,6 +101,7 @@ fun AddItemsDialogPreview() {
         viewModel = hiltViewModel(),
         mediaLists = listOf(),
         onDismiss = {},
+        userId = "",
         mediaId = 0
     )
 }

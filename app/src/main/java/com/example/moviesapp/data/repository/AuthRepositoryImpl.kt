@@ -49,17 +49,19 @@ class AuthRepositoryImpl @Inject constructor(
         try {
             val reference = database.getReference("users/$userId")
             reference.setValue(userData).await()
-            val reference1 = database.getReference("users/$userId/medialist/${UUID.randomUUID()}")
+            val reference1 = database.getReference("users/$userId/medialist/${userId+"FAVORITE"}")
             val childUpdates = mapOf<String, Any>(
                 "name" to "Favorites",
-                "type" to ListType.FAVOURITES.name
+                "type" to ListType.FAVOURITES.name,
+                "id" to userId+"FAVORITE"
             )
             reference1.updateChildren(childUpdates).await()
 
-            val reference2 = database.getReference("users/$userId/medialist/${UUID.randomUUID()}")
+            val reference2 = database.getReference("users/$userId/medialist/${userId+"WATCHED"}")
             val childUpdates2 = mapOf<String, Any>(
                 "name" to "Watched",
-                "type" to ListType.WATCHED.name
+                "type" to ListType.WATCHED.name,
+                "id" to userId+"WATCHED"
             )
             reference2.updateChildren(childUpdates2).await()
             Log.d("TAG", "addUserData: $userData")

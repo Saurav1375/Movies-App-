@@ -11,7 +11,9 @@ import com.example.moviesapp.data.mapper.toSeriesDetails
 import com.example.moviesapp.data.mapper.toSeriesDetailsEntity
 import com.example.moviesapp.data.remote.ApiService
 import com.example.moviesapp.domain.model.Credits
+import com.example.moviesapp.domain.model.MediaRoom
 import com.example.moviesapp.domain.model.MediaType
+import com.example.moviesapp.domain.model.Message
 import com.example.moviesapp.domain.model.Movie
 import com.example.moviesapp.domain.model.MovieDetails
 import com.example.moviesapp.domain.model.Series
@@ -19,18 +21,33 @@ import com.example.moviesapp.domain.model.SeriesDetails
 import com.example.moviesapp.domain.repository.MediaDetailsRepository
 import com.example.moviesapp.utils.Resource
 import com.google.firebase.crashlytics.buildtools.reloc.org.apache.http.HttpException
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.getValue
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.tasks.await
 import java.io.IOException
 import javax.inject.Inject
 
 class MediaDetailsRepositoryImpl @Inject constructor(
     private val api: ApiService,
-    private val db: MovieDatabase
+    private val db: MovieDatabase,
+    private val database: FirebaseDatabase
 ) : MediaDetailsRepository {
 
     private val movieDetailsDao = db.movieDetailsDao
     private val seriesDetailsDao = db.seriesDetailsDao
+
+    companion object {
+        private const val ROOMS_REF = "media_rooms"
+        private const val MESSAGES_REF = "messages"
+    }
 
     override fun getMovieDetailsById(
         language: String,
@@ -54,7 +71,12 @@ class MediaDetailsRepositoryImpl @Inject constructor(
                     val movieDetailsEntity = movieDetailsDto.toMovieDetailsEntity()
                     movieDetailsDao.deleteMovieDetailsById(movieDetailsEntity.id)
                     movieDetailsDao.insertMovieDetails(listOf(movieDetailsEntity))
-                    emit(Resource.Success(movieDetailsDao.getMovieDetailsById(movieDetailsEntity.id)?.toMovieDetails()!!))
+                    emit(
+                        Resource.Success(
+                            movieDetailsDao.getMovieDetailsById(movieDetailsEntity.id)
+                                ?.toMovieDetails()!!
+                        )
+                    )
                 }
             }
         } catch (e: IOException) {
@@ -264,5 +286,173 @@ class MediaDetailsRepositoryImpl @Inject constructor(
             emit(Resource.Error(message = "Couldn't load data"))
         }
 
+    }
+
+    override suspend fun createRoom(mediaId: Int, mediaType: String): Result<MediaRoom> = try {
+        val roomId = "${mediaType}_$mediaId"
+        val room = MediaRoom(
+            roomId = roomId,
+            mediaId = mediaId,
+            mediaType = mediaType
+        )
+
+        database.reference
+            .child(ROOMS_REF)
+            .child(roomId)
+            .setValue(room)
+            .await()
+
+        Result.success(room)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun getRoom(mediaId: Int, mediaType: String): Result<MediaRoom?> {
+        return try {
+            val roomId = "${mediaType}_$mediaId"
+            val snapshot = database.reference
+                .child(ROOMS_REF)
+                .child(roomId)
+                .get()
+                .await()
+
+            if (!snapshot.exists()) return Result.success(null)
+
+            // Manually parse MediaRoom
+            val roomIdValue = snapshot.child("roomId").getValue(String::class.java) ?: ""
+            val mediaIdValue = snapshot.child("mediaId").getValue(Int::class.java) ?: 0
+            val mediaTypeValue = snapshot.child("mediaType").getValue(String::class.java) ?: MediaType.MOVIE.name
+
+            val messagesSnapshot = snapshot.child("messages")
+            val messages = mutableListOf<Message>()
+
+            for (messageSnapshot in messagesSnapshot.children) {
+                val id = messageSnapshot.child("id").getValue(String::class.java) ?: ""
+                val sender = messageSnapshot.child("sender").getValue(String::class.java) ?: ""
+                val text = messageSnapshot.child("text").getValue(String::class.java) ?: ""
+                val timestamp = messageSnapshot.child("timestamp").getValue(Long::class.java) ?: 0L
+
+                messages.add(Message(id, sender, text, timestamp))
+            }
+
+            val room = MediaRoom(roomIdValue, mediaIdValue, mediaTypeValue, messages)
+            Result.success(room)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+
+    override suspend fun addMessage(roomId: String, message: Message): Result<Boolean> {
+        return try {
+            if (!validateMessage(message)) {
+                return Result.failure(IllegalArgumentException("Invalid message data"))
+            }
+            val messageRef = database.reference
+                .child(ROOMS_REF)
+                .child(roomId)
+                .child(MESSAGES_REF)
+                .child(message.id)
+
+            messageRef.setValue(message).await()
+            Result.success(true)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun editMessage(
+        roomId: String,
+        messageId: String,
+        newText: String
+    ): Result<Boolean> = try {
+        val updates = hashMapOf<String, Any>(
+            "text" to newText
+        )
+
+        database.reference
+            .child(ROOMS_REF)
+            .child(roomId)
+            .child(MESSAGES_REF)
+            .child(messageId)
+            .updateChildren(updates)
+            .await()
+
+        Result.success(true)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun deleteMessage(roomId: String, messageId: String): Result<Boolean> = try {
+        database.reference
+            .child(ROOMS_REF)
+            .child(roomId)
+            .child(MESSAGES_REF)
+            .child(messageId)
+            .removeValue()
+            .await()
+
+        Result.success(true)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    override suspend fun listenToRoomMessages(
+        roomId: String,
+    ): Flow<Resource<List<Message>>> = callbackFlow {
+        trySendBlocking(Resource.Loading(isLoading = true))
+
+        val reference = database.reference
+            .child(ROOMS_REF)
+            .child(roomId)
+            .child(MESSAGES_REF)
+            .orderByChild("timestamp")
+        val listener = object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val messages = snapshot.children.mapNotNull {
+                    it.getValue(Message::class.java)
+                }
+                println("messages: $messages")
+                trySendBlocking(Resource.Success(messages))
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                trySendBlocking(Resource.Error(message = error.message))
+            }
+        }
+        reference.addValueEventListener(listener)
+
+        awaitClose {
+            reference.removeEventListener(listener)
+        }
+    }
+
+    override suspend fun addReaction(
+        roomId: String,
+        messageId: String,
+        emoji: String
+    ): Result<Boolean> = try {
+        val messageRef = database.reference
+            .child(ROOMS_REF)
+            .child(roomId)
+            .child(MESSAGES_REF)
+            .child(messageId)
+            .child("reactions")
+
+        val snapshot = messageRef.get().await()
+        val currentReactions = snapshot.getValue<Map<String, Int>>() ?: emptyMap()
+
+        val updatedCount = (currentReactions[emoji] ?: 0) + 1
+        messageRef.child(emoji).setValue(updatedCount).await()
+
+        Result.success(true)
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+
+    private fun validateMessage(message: Message): Boolean {
+        return message.id.isNotBlank() &&
+                message.text.isNotBlank() &&
+                (message.sender.isNotEmpty())
     }
 }

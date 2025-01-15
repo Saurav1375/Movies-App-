@@ -11,8 +11,6 @@ import coil.request.ImageRequest
 import com.example.moviesapp.R
 import com.example.moviesapp.domain.model.MovieDetails
 import com.example.moviesapp.domain.model.SeriesDetails
-import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsState
-import com.example.moviesapp.utils.Constants
 
 @Composable
 fun BackdropImageView(media: Any, modifier: Modifier = Modifier) {

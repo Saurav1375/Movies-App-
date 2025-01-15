@@ -25,11 +25,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -41,11 +38,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.example.moviesapp.presentation.home_screen.HomeEvents
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.moviesapp.presentation.home_screen.components.MoviesSection
 import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsEvent
-import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsState
+import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsUiState
 import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsViewModel
+import com.example.moviesapp.presentation.mediadetails_screen.components.chatComponents.MovieChatSection
 import com.example.moviesapp.presentation.profile_screen.UserDataState
 import com.google.accompanist.swiperefresh.SwipeRefresh
 import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
@@ -57,7 +55,7 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTube
 fun MovieDetailsScreen(
     modifier: Modifier = Modifier,
     viewModel: MediaDetailsViewModel,
-    mediaDetailsState: MediaDetailsState,
+    mediaDetailsUiState: MediaDetailsUiState,
     userDetailState: UserDataState,
     mediaId: Int,
     onItemClick: (Int, String) -> Unit,
@@ -67,11 +65,14 @@ fun MovieDetailsScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var youTubePlayerView by remember { mutableStateOf<YouTubePlayerView?>(null) }
     val swipeRefreshState = rememberSwipeRefreshState(
-        isRefreshing = mediaDetailsState.isRefreshing
+        isRefreshing = mediaDetailsUiState.isRefreshing
     )
 
+    val messages by viewModel.mediaRoomMessage.collectAsStateWithLifecycle()
+    val user = userDetailState.userData.userId
 
     val mediaList = userDetailState.userData.mediaLists
+    println("list : $mediaList")
 
     DisposableEffect(Unit) {
         onDispose {
@@ -84,6 +85,7 @@ fun MovieDetailsScreen(
             mediaLists = mediaList,
             viewModel = viewModel,
             mediaId = mediaId,
+            userId = user,
             onDismiss = { showAddDialog = false }
         )
     }
@@ -102,7 +104,7 @@ fun MovieDetailsScreen(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                mediaDetailsState.movieDetails?.let {
+                mediaDetailsUiState.movieDetails?.let {
                     BackdropImageView(
                         it,
                         Modifier
@@ -113,7 +115,7 @@ fun MovieDetailsScreen(
                 }
 
                 // Header
-                mediaDetailsState.movieDetails?.let {
+                mediaDetailsUiState.movieDetails?.let {
                     HeaderDetails(
                         it,
                         modifier = Modifier.fillMaxWidth()
@@ -121,7 +123,7 @@ fun MovieDetailsScreen(
                 }
 
                 // Cast section
-                mediaDetailsState.credits?.cast?.let {
+                mediaDetailsUiState.credits?.cast?.let {
                     CastSection(
                         it,
                         modifier = Modifier.fillMaxWidth()
@@ -129,7 +131,7 @@ fun MovieDetailsScreen(
                 }
 
                 // Trailer section
-                mediaDetailsState.videoUrl?.let { id ->
+                mediaDetailsUiState.videoUrl?.let { id ->
                     TrailerView(
                         videoId = id,
                         onYouTubePlayerCreated = { youTubePlayerView = it }
@@ -137,14 +139,21 @@ fun MovieDetailsScreen(
                 }
 
                 // Recommendations section
-                if (mediaDetailsState.movieRecommendations.isNotEmpty()) {
+                if (mediaDetailsUiState.movieRecommendations.isNotEmpty()) {
                     MoviesSection(
                         "Recommended",
-                        mediaDetailsState.movieRecommendations,
+                        mediaDetailsUiState.movieRecommendations,
                         onClick = onItemClick,
                         modifier = Modifier.padding(16.dp)
                     )
                 }
+
+                MovieChatSection(
+                    messages = messages ,
+                    viewModel = viewModel,
+                    currentUser = userDetailState.userData,
+                    modifier = Modifier.padding(16.dp)
+                )
 
             }
         }
@@ -187,7 +196,7 @@ fun MovieDetailsScreen(
 fun PreviewMovieDetailsScreen() {
     MovieDetailsScreen(
         viewModel = hiltViewModel(),
-        mediaDetailsState = MediaDetailsState(),
+        mediaDetailsUiState = MediaDetailsUiState(),
         userDetailState = UserDataState(),
         mediaId = 123,
         onItemClick = { _, _ -> },
