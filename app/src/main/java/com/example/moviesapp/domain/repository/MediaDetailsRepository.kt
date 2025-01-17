@@ -1,6 +1,5 @@
 package com.example.moviesapp.domain.repository
 
-import com.example.moviesapp.data.remote.dto.videodto.VideoDto
 import com.example.moviesapp.domain.model.Credits
 import com.example.moviesapp.domain.model.MediaRoom
 import com.example.moviesapp.domain.model.MediaType
@@ -60,4 +59,6 @@ interface MediaDetailsRepository {
         messageId: String,
         emoji: String
     ): Result<Boolean>
+
+    suspend fun toggleLikeMessage(userId: String, roomId: String, messageId: String) : Result<Boolean>
 }

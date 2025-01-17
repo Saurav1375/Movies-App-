@@ -152,7 +152,6 @@ fun MovieDetailsScreen(
                     messages = messages ,
                     viewModel = viewModel,
                     currentUser = userDetailState.userData,
-                    modifier = Modifier.padding(16.dp)
                 )
 
             }

@@ -9,7 +9,10 @@ data class MediaRoom(
 
 data class Message(
     val id: String = "",
-    val sender: String = "",
+    val senderId : String = "",
+    val senderName: String = "",
+    val senderProfilePicture: String = "",
+    val likes: MutableList<String> = mutableListOf(),
     val text: String = "",
     val timestamp: Long = 0L,
 )

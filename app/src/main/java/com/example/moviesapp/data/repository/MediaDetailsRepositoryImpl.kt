@@ -24,6 +24,7 @@ import com.google.firebase.crashlytics.buildtools.reloc.org.apache.http.HttpExce
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.GenericTypeIndicator
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.getValue
 import kotlinx.coroutines.channels.awaitClose
@@ -328,11 +329,13 @@ class MediaDetailsRepositoryImpl @Inject constructor(
 
             for (messageSnapshot in messagesSnapshot.children) {
                 val id = messageSnapshot.child("id").getValue(String::class.java) ?: ""
-                val sender = messageSnapshot.child("sender").getValue(String::class.java) ?: ""
+                val sender = messageSnapshot.child("senderName").getValue(String::class.java) ?: ""
                 val text = messageSnapshot.child("text").getValue(String::class.java) ?: ""
                 val timestamp = messageSnapshot.child("timestamp").getValue(Long::class.java) ?: 0L
-
-                messages.add(Message(id, sender, text, timestamp))
+                val senderId = messageSnapshot.child("senderId").getValue(String::class.java) ?: ""
+                val profilePicture = messageSnapshot.child("senderProfilePicture").getValue(String::class.java) ?: ""
+                val likes = messageSnapshot.child("likes").getValue(object : GenericTypeIndicator<List<String>>() {}) ?: emptyList()
+                messages.add(Message(id, sender,senderId, profilePicture, likes.toMutableList() ,text, timestamp, ))
             }
 
             val room = MediaRoom(roomIdValue, mediaIdValue, mediaTypeValue, messages)
@@ -453,6 +456,32 @@ class MediaDetailsRepositoryImpl @Inject constructor(
     private fun validateMessage(message: Message): Boolean {
         return message.id.isNotBlank() &&
                 message.text.isNotBlank() &&
-                (message.sender.isNotEmpty())
+                (message.senderName.isNotEmpty())
+    }
+
+    override suspend fun toggleLikeMessage(
+        userId: String,
+        roomId: String,
+        messageId: String,
+    ): Result<Boolean> {
+        return try {
+            val messageRef = database.reference
+                .child(ROOMS_REF)
+                .child(roomId)
+                .child(MESSAGES_REF)
+                .child(messageId)
+
+            val snapshot = messageRef.get().await()
+            val likes = snapshot.child("likes").getValue(object : GenericTypeIndicator<List<String>>() {}) ?: emptyList()
+            if(likes.contains(userId)) {
+                messageRef.child("likes").setValue(likes.filter { it != userId})
+            } else {
+                messageRef.child("likes").setValue(likes + listOf(userId))
+            }
+            return Result.success(true)
+
+        } catch (e : Exception) {
+            Result.failure(e)
+        }
     }
 }

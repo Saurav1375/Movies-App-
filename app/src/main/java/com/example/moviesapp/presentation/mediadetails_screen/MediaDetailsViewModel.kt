@@ -20,7 +20,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -149,6 +148,7 @@ class MediaDetailsViewModel @Inject constructor(
             }
 
             is MediaDetailsEvent.OnDeleteMessage -> {
+                deleteMessage(event.messageId)
 
             }
 
@@ -158,6 +158,9 @@ class MediaDetailsViewModel @Inject constructor(
             }
 
             is MediaDetailsEvent.OnUpdateMessage -> TODO()
+            is MediaDetailsEvent.OnLikedButtonClicked -> {
+                updateLike(event.messageId)
+            }
         }
 
     }
@@ -450,7 +453,9 @@ class MediaDetailsViewModel @Inject constructor(
                 roomId?.let { id ->
                     val message = Message(
                         id = UUID.randomUUID().toString(),
-                        sender = userData.username,
+                        senderName = userData.username,
+                        senderId = userData.userId,
+                        senderProfilePicture = userData.profilePictureUrl,
                         text = text,
                         timestamp = System.currentTimeMillis()
                     )
@@ -473,6 +478,30 @@ class MediaDetailsViewModel @Inject constructor(
             }
         }
 
+    }
+
+    private fun deleteMessage(messageId: String) {
+        viewModelScope.launch {
+            try {
+                roomId?.let {  id->
+                    mediaDetailsRepository.deleteMessage(id, messageId)
+                }
+            } catch (e: Exception) {
+                Log.e("MediaDetailsViewModel", "Error deleting msg", e)
+            }
+        }
+    }
+
+    private fun updateLike(messageId: String) {
+        viewModelScope.launch {
+            try {
+                roomId?.let {  id->
+                    currentUser?.uid?.let { mediaDetailsRepository.toggleLikeMessage(it, id, messageId) }
+                }
+            } catch (e: Exception) {
+                Log.e("MediaDetailsViewModel", "Error deleting msg", e)
+            }
+        }
     }
 }
 
