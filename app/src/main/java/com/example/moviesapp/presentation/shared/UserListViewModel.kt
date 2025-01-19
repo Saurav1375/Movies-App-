@@ -1,5 +1,6 @@
 package com.example.moviesapp.presentation.shared
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.moviesapp.domain.model.ListType
@@ -16,6 +17,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
@@ -26,7 +28,8 @@ import javax.inject.Inject
 @HiltViewModel
 class UserListViewModel @Inject constructor(
     private val repository: UserListRepository,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
     private val _userDataState = MutableStateFlow(UserDataState())
@@ -48,14 +51,20 @@ class UserListViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = UserDataState()
     )
+
+    private val _friendData = MutableStateFlow<List<UserData>>(emptyList())
+    val friendData: StateFlow<List<UserData>> = _friendData.asStateFlow()
+
     private val user = auth.currentUser
     private var currentJob: Job? = null
 
     init {
 
         user?.let {
+            val friendsId = savedStateHandle.get<String>("friendsId")
             getAllMediaLists(it.uid)
             getUserData(it.uid)
+            fetchFriendsData(it.uid)
         }
     }
 
@@ -71,12 +80,10 @@ class UserListViewModel @Inject constructor(
                     searchUsers(_searchQuery.value)
                 }
             }
-        }
-    }
 
-    fun addUserData(userData: UserData, userId: String) {
-        viewModelScope.launch {
-            repository.addUserData(userData, userId)
+            is ProfileEvents.OnAddFriend -> {
+                addFriend(event.friendsId, user?.uid ?: "")
+            }
         }
     }
 
@@ -99,14 +106,15 @@ class UserListViewModel @Inject constructor(
         }
     }
 
-    private fun getAllMediaLists(userId: String) {
+
+    private fun getAllMediaLists(userId: String, forceFetchFromRemote : Boolean = false) {
         viewModelScope.launch {
             _userDataState.update {
                 it.copy(
                     isLoading = true,
                 )
             }
-            repository.getAllLists(userId).collect { result ->
+            repository.getAllLists(userId, forceFetchFromRemote).collect { result ->
                 when (result) {
 
                     is Resource.Success -> {
@@ -212,5 +220,31 @@ class UserListViewModel @Inject constructor(
             }
         }
 
+    }
+
+    private fun addFriend(friendsId: String, userId: String) {
+        viewModelScope.launch {
+            repository.addFriend(friendsId, userId)
+        }
+
+    }
+
+    private fun fetchFriendsData(userId: String) {
+        viewModelScope.launch {
+            repository.getFriendsData(userId).collect { result ->
+                when (result) {
+                    is Resource.Success -> {
+                        result.data?.let {
+                            _friendData.value = it
+                        }
+
+                    }
+                    is Resource.Error -> {
+                        _friendData.value = emptyList()
+                    }
+                    is Resource.Loading -> Unit
+                }
+            }
+        }
     }
 }

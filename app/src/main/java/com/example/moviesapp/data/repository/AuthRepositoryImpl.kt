@@ -48,30 +48,40 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun addUserData(userData: UserData, userId: String): Resource<Unit> {
         try {
             val reference = database.getReference("users/$userId")
-            reference.setValue(userData).await()
-            val reference1 = database.getReference("users/$userId/medialist/${userId+"FAVORITE"}")
-            val childUpdates = mapOf<String, Any>(
-                "name" to "Favorites",
-                "type" to ListType.FAVOURITES.name,
-                "id" to userId+"FAVORITE"
-            )
-            reference1.updateChildren(childUpdates).await()
+            val snapshot = reference.get().await()
 
-            val reference2 = database.getReference("users/$userId/medialist/${userId+"WATCHED"}")
-            val childUpdates2 = mapOf<String, Any>(
-                "name" to "Watched",
-                "type" to ListType.WATCHED.name,
-                "id" to userId+"WATCHED"
-            )
-            reference2.updateChildren(childUpdates2).await()
-            Log.d("TAG", "addUserData: $userData")
-            return Resource.Success(Unit)
+            if (!snapshot.exists()) {
+                // User does not exist, proceed with adding data
+                reference.setValue(userData).await()
 
-        } catch (e : Exception) {
+                val reference1 = database.getReference("users/$userId/medialist/${userId + "FAVORITE"}")
+                val childUpdates1 = mapOf<String, Any>(
+                    "name" to "Favorites",
+                    "type" to ListType.FAVOURITES.name,
+                    "id" to userId + "FAVORITE"
+                )
+                reference1.updateChildren(childUpdates1).await()
+
+                val reference2 = database.getReference("users/$userId/medialist/${userId + "WATCHED"}")
+                val childUpdates2 = mapOf<String, Any>(
+                    "name" to "Watched",
+                    "type" to ListType.WATCHED.name,
+                    "id" to userId + "WATCHED"
+                )
+                reference2.updateChildren(childUpdates2).await()
+
+                Log.d("TAG", "addUserData: $userData")
+                return Resource.Success(Unit)
+            } else {
+                Log.d("TAG", "addUserData: User already exists")
+                return Resource.Success(Unit) // No action needed if the user already exists
+            }
+        } catch (e: Exception) {
             Log.d("TAG", "addUserData: ${e.message}")
             return Resource.Error(e.message ?: "Failed to add user data")
         }
     }
+
 
     override fun getCurrentUser(): User? {
         return auth.currentUser?.toUser()

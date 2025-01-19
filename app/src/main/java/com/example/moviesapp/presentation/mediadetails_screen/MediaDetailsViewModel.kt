@@ -1,6 +1,7 @@
 package com.example.moviesapp.presentation.mediadetails_screen
 
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -52,8 +53,13 @@ class MediaDetailsViewModel @Inject constructor(
 
     private val currentUser = auth.currentUser
     val selectedListIds = MutableStateFlow<List<String>>(emptyList())
-
     private val videoUrl = MutableStateFlow<String?>(null)
+    var selectedMessageId = MutableStateFlow<String?>(null)
+        private set
+
+    fun selectMessage(messageId: String?) {
+        selectedMessageId.value = messageId
+    }
 
     val mediaDetailsUiState = _uiState
         .combine(_movieRecommendationsState) { state, movieRecs ->
@@ -160,6 +166,11 @@ class MediaDetailsViewModel @Inject constructor(
             is MediaDetailsEvent.OnUpdateMessage -> TODO()
             is MediaDetailsEvent.OnLikedButtonClicked -> {
                 updateLike(event.messageId)
+            }
+
+            is MediaDetailsEvent.OnAddToWatchList -> TODO()
+            is MediaDetailsEvent.OnCreateWatchList -> {
+                addWatchList(event.watchListName, userId = currentUser?.uid ?: "")
             }
         }
 
@@ -401,6 +412,15 @@ class MediaDetailsViewModel @Inject constructor(
             repository.addMediaToListByListId(watchListId, media, userId)
         }
 
+    }
+
+    private fun addWatchList(
+        watchListName: String,
+        userId: String
+    ) {
+        viewModelScope.launch {
+            repository.addWatchList(userId, watchListName)
+        }
     }
 
     private fun fetchAndLoadMessages() {

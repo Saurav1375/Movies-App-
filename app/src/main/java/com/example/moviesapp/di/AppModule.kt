@@ -33,8 +33,11 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideFirebaseDatabase() : FirebaseDatabase {
-        return Firebase.database("https://movieproject-6efb3-default-rtdb.asia-southeast1.firebasedatabase.app/")
+    fun provideFirebaseDatabase(): FirebaseDatabase {
+        val database = Firebase.database("https://movieproject-6efb3-default-rtdb.asia-southeast1.firebasedatabase.app/")
+        database.setPersistenceEnabled(true)
+        database.setPersistenceCacheSizeBytes(10 * 1024 * 1024)
+        return database
     }
 
     @Provides

@@ -1,4 +1,5 @@
 package com.example.moviesapp.presentation.mediadetails_screen.components.chatComponents
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -34,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.moviesapp.domain.model.Message
 import com.example.moviesapp.domain.model.UserData
 import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsEvent
@@ -45,12 +47,12 @@ fun MovieChatSection(
     modifier: Modifier = Modifier,
     viewModel: MediaDetailsViewModel,
     currentUser: UserData,
-    messages : List<Message>,
+    messages: List<Message>,
     maxHeight: Dp = 400.dp
 ) {
     var messageText by remember { mutableStateOf("") }
-    var selectedMessageId by remember { mutableStateOf<String?>(null) }
-    var showTextOption by remember { mutableStateOf(false) }
+    val selectedMessageId by viewModel.selectedMessageId.collectAsState()
+    val showTextOption = !selectedMessageId.isNullOrEmpty()
 
     Card(
         modifier = modifier
@@ -92,31 +94,17 @@ fun MovieChatSection(
                             Row(
                                 modifier = Modifier.padding(end = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(2.dp)
                             ) {
-                                // Update icon
-                                IconButton(
-                                    onClick = {
-
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Edit"
-                                    )
-                                }
-
                                 // Delete icon
                                 IconButton(
                                     onClick = {
-                                        if (selectedMessageId != null){
-                                            viewModel.OnEvent(MediaDetailsEvent.OnDeleteMessage(
+                                        viewModel.OnEvent(
+                                            MediaDetailsEvent.OnDeleteMessage(
                                                 selectedMessageId!!
-                                            ))
+                                            )
+                                        )
+                                        viewModel.selectMessage(null)
 
-                                            showTextOption = false
-
-                                        }
                                     }
                                 ) {
                                     Icon(
@@ -127,20 +115,17 @@ fun MovieChatSection(
                             }
                         }
                     }
-
-
                 }
-
-
 
                 HorizontalDivider(
                     modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.onSurface
                 )
-
             }
-            val userListViewModel : UserListViewModel = hiltViewModel()
+
+            val userListViewModel: UserListViewModel = hiltViewModel()
             val userState by userListViewModel.userData.collectAsState()
+
             // Message Input
             ChatInputField(
                 value = messageText,
@@ -165,50 +150,19 @@ fun MovieChatSection(
                     .fillMaxWidth(),
                 reverseLayout = true
             ) {
-               items(messages) { message ->
-                   SocialPost(
-                       message = message,
-                       messageSelected = showTextOption,
-                       msgLiked = message.likes.contains(currentUser.userId),
-                       isCurrentUser = message.senderName == currentUser.username,
-                       onLonPress = { msg, isSelected ->
-                           showTextOption = isSelected
-                           selectedMessageId = msg.id
-
-                       },
-                       onLikeClick = {
-                           viewModel.OnEvent(MediaDetailsEvent.OnLikedButtonClicked(it))
-                       }
-                   )
-//                    ChatMessageItem(
-//                        message = message,
-//                        isCurrentUser = message.sender == currentUser.username,
-//                        isEditing = editingMessageId == message.id,
-//                        editText = if (editingMessageId == message.id) editText else "",
-//                        onEditClick = {
-//                            editingMessageId = message.id
-//                            editText = message.text
-//                        },
-//                        onEditChange = { editText = it },
-//                        onEditDone = {
-//                            viewModel.OnEvent(MediaDetailsEvent.OnUpdateMessage(message.id, editText))
-//                            editingMessageId = null
-//                            editText = ""
-//                        },
-//                        onDeleteClick = {
-//                            viewModel.OnEvent(MediaDetailsEvent.OnDeleteMessage(message.id))
-//                        },
-//                        onReactionClick = { emoji ->
-//                            viewModel.OnEvent(MediaDetailsEvent.OnAddReaction(message.id, emoji))
-//                        },
-//                        modifier = Modifier
-//                            .fillMaxWidth()
-//                            .padding(vertical = 4.dp)
-//                    )
+                items(messages) { message ->
+                    SocialPost(
+                        message = message,
+                        viewModel = viewModel,
+                        msgLiked = message.likes.contains(currentUser.userId),
+                        isCurrentUser = message.senderName == currentUser.username,
+                        onLikeClick = {
+                            viewModel.OnEvent(MediaDetailsEvent.OnLikedButtonClicked(it))
+                        },
+                        selectedMessageId = selectedMessageId
+                    )
                 }
             }
-
-
         }
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
 import androidx.compose.material.icons.outlined.PlaylistAddCircle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +36,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.moviesapp.domain.model.ListType
 import com.example.moviesapp.domain.model.MediaList
+import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsEvent
 import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsViewModel
 
 @Composable
@@ -47,6 +49,7 @@ fun WatchListAddView(
     var isExpanded by remember { mutableStateOf(false) }
     var showCreateWatchlist by remember { mutableStateOf(false) }
     val watchLists = mediaLists.filter { it.type == ListType.WATCHLIST.name }
+    println(watchLists)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -96,7 +99,7 @@ fun WatchListAddView(
                 }
 
                 Icon(
-                    imageVector = Icons.Default.ArrowDropDown,
+                    imageVector = if(!isExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropUp,
                     contentDescription = "Expand List",
                     tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
@@ -107,7 +110,7 @@ fun WatchListAddView(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     if (watchLists.isNotEmpty()) {
                         Text(
@@ -115,20 +118,18 @@ fun WatchListAddView(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                    }
 
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        items(watchLists) { item ->
-                            WatchListItem(
-                                viewModel = viewModel,
-                                watchList = item,
-                                mediaId = mediaId
-                            ) {
-                                // Action when item is clicked
+
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            items(watchLists) { item ->
+                                WatchListItem(
+                                    viewModel = viewModel,
+                                    watchList = item,
+                                    mediaId = mediaId
+                                )
                             }
                         }
                     }
@@ -156,7 +157,8 @@ fun WatchListAddView(
                     if (showCreateWatchlist) {
                         CreateWatchListView(
                             onAddClick = {
-                                // Action for adding a new watchlist
+                               viewModel.OnEvent(MediaDetailsEvent.OnCreateWatchList(it))
+                                showCreateWatchlist = false
                             }
                         )
                     }

@@ -1,4 +1,4 @@
-package com.example.moviesapp.presentation.profile_screen
+package com.example.moviesapp.presentation.profile_screen.components
 
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.layout.Arrangement
@@ -19,7 +19,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.example.moviesapp.domain.model.MediaList
 
@@ -27,10 +26,10 @@ import com.example.moviesapp.domain.model.MediaList
 @Composable
 fun WatchlistCard(
     watchlist: MediaList,
-    onClick: () -> Unit
+    onClick: (String) -> Unit
 ) {
     Card(
-        onClick = onClick,
+        onClick = { onClick(watchlist.id) },
         modifier = Modifier
             .size(160.dp)
             .animateContentSize(),

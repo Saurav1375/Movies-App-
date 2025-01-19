@@ -110,7 +110,6 @@ fun MovieDetailsScreen(
                         Modifier
                             .height(LocalConfiguration.current.screenHeightDp.dp / 1.7f)
                             .fillMaxWidth()
-                            .clickable { showAddDialog = true }
                     )
                 }
 

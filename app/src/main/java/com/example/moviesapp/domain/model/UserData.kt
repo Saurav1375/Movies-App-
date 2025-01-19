@@ -14,6 +14,7 @@ data class UserData(
     val mediaLists : List<MediaList> = emptyList()
 )
 
+
 data class MediaList(
     val name : String = "",
     val type : String = "",

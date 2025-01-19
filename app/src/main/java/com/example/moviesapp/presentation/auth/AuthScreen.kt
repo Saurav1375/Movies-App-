@@ -1,5 +1,6 @@
 package com.example.moviesapp.presentation.auth
 
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -48,6 +49,7 @@ fun AuthScreen(
             }
         } catch (e: ApiException) {
             // Handle error
+            Log.e("AuthScreen", "Google sign in failed", e)
         }
     }
     val authState by viewModel.authState.collectAsState()
@@ -59,6 +61,17 @@ fun AuthScreen(
             }
             else -> {}
         }
+    }
+
+    // Clear any existing sign-in state when the screen is shown
+    LaunchedEffect(Unit) {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(Constants.WEB_CLIENT_ID)
+            .requestProfile()
+            .requestEmail()
+            .build()
+        val googleSignInClient = GoogleSignIn.getClient(context, gso)
+        googleSignInClient.signOut() // Sign out from any previous session
     }
 
     Column(
@@ -74,11 +87,13 @@ fun AuthScreen(
                     .requestIdToken(Constants.WEB_CLIENT_ID)
                     .requestProfile()
                     .requestEmail()
-                    .requestIdToken(Constants.WEB_CLIENT_ID)
                     .build()
 
                 val googleSignInClient = GoogleSignIn.getClient(context, gso)
-                launcher.launch(googleSignInClient.signInIntent)
+                // Always sign out before showing picker
+                googleSignInClient.signOut().addOnCompleteListener {
+                    launcher.launch(googleSignInClient.signInIntent)
+                }
             }
         ) {
             Text("Sign in with Google")
@@ -86,12 +101,8 @@ fun AuthScreen(
 
         when (authState) {
             is AuthState.Success -> {
-
                 sharedUserViewModel.setUser((authState as AuthState.Success).user)
-
-
                 Text("User: ${(authState as AuthState.Success).user.name}")
-
             }
             is AuthState.Loading -> {
                 CircularProgressIndicator(modifier = Modifier.padding(16.dp))
@@ -103,9 +114,7 @@ fun AuthScreen(
                     modifier = Modifier.padding(16.dp)
                 )
             }
-            else -> {
-
-            }
+            else -> {}
         }
     }
 }

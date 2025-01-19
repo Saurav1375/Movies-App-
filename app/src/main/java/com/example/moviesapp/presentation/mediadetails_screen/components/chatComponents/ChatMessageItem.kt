@@ -39,6 +39,7 @@ import coil.request.ImageRequest
 import com.example.moviesapp.R
 import com.example.moviesapp.domain.model.Message
 import com.example.moviesapp.presentation.TimeAgoFormatter
+import com.example.moviesapp.presentation.mediadetails_screen.MediaDetailsViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -47,14 +48,14 @@ import java.util.Locale
 fun SocialPost(
     message: Message,
     isCurrentUser: Boolean,
-    onLonPress: (Message, Boolean) -> Unit,
+    viewModel: MediaDetailsViewModel,
     msgLiked: Boolean,
     onLikeClick: (String) -> Unit,
-    messageSelected: Boolean,
+    selectedMessageId: String?,
     modifier: Modifier = Modifier
 ) {
+    val isSelected = selectedMessageId == message.id
 
-    var isSelected by remember { mutableStateOf(false) }
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -62,36 +63,26 @@ fun SocialPost(
                 if (isCurrentUser) {
                     detectTapGestures(
                         onLongPress = {
-                            if (!messageSelected) {
-                                isSelected = !isSelected
-                                onLonPress(message, isSelected)
-                            }
-
+                            viewModel.selectMessage(if (isSelected) null else message.id)
                         },
                         onTap = {
-                            if (!messageSelected) {
-                                isSelected = false
-                                onLonPress(message, false)
-                            }
-
+                            viewModel.selectMessage(null)
                         }
-
                     )
                 }
-
             }
             .background(
-                if (!isSelected) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerHighest
+                if (isSelected) MaterialTheme.colorScheme.surfaceContainerHighest
+                else Color.Transparent
             )
             .padding(vertical = 12.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Profile Image
-
+        // Profile Image or Cancel Icon
         if (isSelected) {
             IconButton(
                 onClick = {
-                    isSelected = false
+                    viewModel.selectMessage(null)
                 }
             ) {
                 Icon(
@@ -99,7 +90,7 @@ fun SocialPost(
                         .size(30.dp)
                         .clip(CircleShape),
                     imageVector = Icons.Default.Cancel,
-                    contentDescription = "Selected",
+                    contentDescription = "Deselect",
                     tint = MaterialTheme.colorScheme.secondary
                 )
             }
@@ -117,10 +108,9 @@ fun SocialPost(
             )
         }
 
-
         Spacer(modifier = Modifier.width(16.dp))
 
-        // Username and Time
+        // Username, Time, and Message Text
         Column(
             modifier = Modifier.weight(1f)
         ) {
@@ -133,25 +123,22 @@ fun SocialPost(
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium
                 )
-
                 Text(
                     text = TimeAgoFormatter.getTimeAgo(message.timestamp),
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray
                 )
             }
-
             Text(
                 text = message.text.trimEnd(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
-
         }
 
-        // Like Count
+        // Like Count and Icon
         Row(
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(
                 onClick = {
@@ -159,7 +146,7 @@ fun SocialPost(
                 }
             ) {
                 Icon(
-                    imageVector = if(!msgLiked) Icons.Outlined.ThumbUp else Icons.Filled.ThumbUp,
+                    imageVector = if (!msgLiked) Icons.Outlined.ThumbUp else Icons.Filled.ThumbUp,
                     contentDescription = "Likes",
                     tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
@@ -170,10 +157,10 @@ fun SocialPost(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary
             )
-
         }
     }
 }
+
 
 // Preview
 //@Preview(showBackground = true)

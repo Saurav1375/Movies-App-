@@ -27,16 +27,14 @@ fun WatchListItem(
     watchList: MediaList,
     mediaId : Int,
     modifier: Modifier = Modifier,
-    onItemClicked: (String) -> Unit
 ) {
 
-    val alreadyPresent by remember { mutableStateOf(watchList.list.find { it.id == mediaId} != null) }
+    val alreadyPresent = watchList.list.find { it.id == mediaId} != null
     var isChecked by remember { mutableStateOf(alreadyPresent) }
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(8.dp)
             .clickable (
                 enabled = !alreadyPresent
             ){
@@ -47,26 +45,34 @@ fun WatchListItem(
                     viewModel.selectedListIds.value -= watchList.id
                 }
             },
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Checkbox(
+            enabled = !alreadyPresent,
             checked = isChecked,
-            onCheckedChange = { onItemClicked(watchList.id) }
+            onCheckedChange = {
+                isChecked = !isChecked
+                if (isChecked) {
+                    viewModel.selectedListIds.value += watchList.id
+                } else {
+                    viewModel.selectedListIds.value -= watchList.id
+                }
+            }
         )
 
         Text(
             text = watchList.name,
-            modifier = Modifier.padding(8.dp),
+            modifier = Modifier.padding(2.dp),
             style = MaterialTheme.typography.titleMedium,
-            color = Color.White
+            color = MaterialTheme.colorScheme.onBackground
         )
         if(alreadyPresent){
             Text(
-                text = "Already Present",
-                modifier = Modifier.padding(8.dp),
-                style = MaterialTheme.typography.titleSmall,
-                color = Color.White.copy(alpha = 0.6f)
+                text = "(Already Present)",
+                modifier = Modifier.padding(2.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.secondary
             )
         }
 

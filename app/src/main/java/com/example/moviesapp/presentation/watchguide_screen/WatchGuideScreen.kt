@@ -1,6 +1,7 @@
 package com.example.moviesapp.presentation.watchguide_screen
 
 import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,12 +36,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.AsyncImage
 import com.example.moviesapp.domain.model.MediaType
 import com.example.moviesapp.domain.model.MovieGenre
 import com.example.moviesapp.domain.model.SearchMovie
 import com.example.moviesapp.domain.model.SeriesGenre
+import com.example.moviesapp.presentation.Screen
 import com.example.moviesapp.presentation.home_screen.HomeEvents
 import com.example.moviesapp.presentation.home_screen.components.MoviesSection
 import com.example.moviesapp.presentation.home_screen.components.SeriesSection
@@ -58,9 +61,11 @@ import kotlinx.coroutines.flow.retry
 @Composable
 fun WatchGuideScreen(
     modifier: Modifier = Modifier,
+    navController: NavHostController,
     viewModel: WatchGuideViewmodel = hiltViewModel(),
     onItemClick: (Int, String) -> Unit
 ) {
+
     val state by viewModel.watchGuideState.collectAsState()
     val scrollState = rememberScrollState()
     val swipeState = rememberSwipeRefreshState(
@@ -68,9 +73,21 @@ fun WatchGuideScreen(
     )
 
 
+
+
+
     val searchQuery by viewModel.searchQuery.collectAsState()
     val moviesPagingItems = viewModel.searchMovieResults.collectAsLazyPagingItems()
     val seriesPagingItems = viewModel.searchSeriesResults.collectAsLazyPagingItems()
+
+    BackHandler {
+        if(searchQuery.isNotEmpty()){
+            viewModel.onEvents(WatchGuideEvents.OnSearchQueryChange(""))
+        }
+        else{
+            navController.navigate(Screen.HomeScreen.route)
+        }
+    }
 
     Box(modifier = modifier) {
         Column(

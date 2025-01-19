@@ -38,9 +38,7 @@ fun OtherMediaView(
     modifier: Modifier = Modifier
 ) {
     // Check if the media is already present in the list
-    val alreadyPresent by remember {
-        mutableStateOf(mediaType?.list?.any { it.id == mediaId } == true)
-    }
+    val alreadyPresent = mediaType?.list?.any { it.id == mediaId } == true
     var isSelected by remember { mutableStateOf(alreadyPresent) }
 
     Box(

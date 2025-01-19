@@ -13,7 +13,6 @@ sealed class MediaDetailsEvent {
     data class OnAddReaction(val messageId: String, val emoji: String) : MediaDetailsEvent()
     data class OnRemoveReaction(val messageId: String, val emoji: String) : MediaDetailsEvent()
 
-
-
-
+    data class OnCreateWatchList(val watchListName: String) : MediaDetailsEvent()
+    data class OnAddToWatchList(val watchListId: String) : MediaDetailsEvent()
 }

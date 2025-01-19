@@ -49,6 +49,30 @@ sealed class Screen(
         title = "Media Details",
 
     )
+
+     object WatchListDetailedView : Screen(
+        route = "watchlist_detailed_view",
+        title = "Watchlist Detailed View",
+    )
+
+    object FriendsWatchListDetailedView : Screen(
+        route = "friends_watchlist_detailed_view",
+        title = "Friends Watchlist Detailed View",
+    )
+
+
+    object FriendsInfoScreen : Screen(
+        route = "friends_info_screen",
+        title = "Friends Info Screen",
+    )
+    object FriendsFriendsInfoScreen : Screen(
+        route = "friends_friends_info_screen",
+        title = "Friends Friends Info Screen",
+    )
+    object FriendsProfileScreen : Screen(
+        route = "friends_profile_screen",
+        title = "Friends Profile Screen",
+    )
     data object AuthScreen : Screen("auth_screen")
     data object TestScreen : Screen("test_screen")
     data object SplashScreen : Screen("splash_screen")

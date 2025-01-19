@@ -13,12 +13,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.PersonAddAlt1
 import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,18 +35,24 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.example.moviesapp.domain.model.UserData
+import com.example.moviesapp.presentation.Screen
 import com.example.moviesapp.presentation.profile_screen.ProfileEvents
 import com.example.moviesapp.presentation.shared.UserListViewModel
+import coil.compose.AsyncImage as AsyncImage1
 
 @Composable
 fun SocialScreen(
+    navController: NavHostController,
     onEvent: (ProfileEvents) -> Unit
 ) {
     val viewModel: UserListViewModel = hiltViewModel()
@@ -53,6 +62,7 @@ fun SocialScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
+            .statusBarsPadding()
     ) {
         // Search Bar
         Surface(
@@ -155,7 +165,20 @@ fun SocialScreen(
             contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             items(state.queryUsers) { user ->
-                UserCard(user = user)
+                UserCard(
+                    user = user,
+                    currentUserData = state.userData,
+                    onClick =  { friendsId ->
+                        navController.navigate(Screen.FriendsProfileScreen.route + "/$friendsId")
+                    }
+                ) {
+                    viewModel.onEvents(
+                        ProfileEvents.OnAddFriend(
+                            user.userId,
+                            state.userData.userId
+                        )
+                    )
+                }
             }
 
             // Empty State
@@ -180,11 +203,19 @@ fun SocialScreen(
 }
 
 @Composable
-private fun UserCard(user: UserData) {
+fun UserCard(
+    user: UserData,
+    currentUserData: UserData,
+    onClick: (String) -> Unit,
+    onAddFriendClick: () -> Unit
+) {
+    val alreadyFriend = currentUserData.friends.contains(user.userId)
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { },
+            .clickable {
+                onClick(user.userId)
+            },
         shape = RoundedCornerShape(12.dp),
         tonalElevation = 1.dp
     ) {
@@ -195,35 +226,56 @@ private fun UserCard(user: UserData) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // User Avatar
-            Surface(
-                modifier = Modifier.size(48.dp),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape),
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
+                AsyncImage1(
+                    model = user.profilePictureUrl,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
+
+            // User Info
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text(
-                        text = user.username.take(1).uppercase(),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        text = user.username,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Text(
+                        text = user.email,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                IconButton(
+                    onClick = {
+                        onAddFriendClick()
+
+                    }
+                ) {
+                    Icon(
+                        imageVector = if (alreadyFriend) Icons.Filled.Person else Icons.Outlined.PersonAddAlt1,
+                        contentDescription = "Unfollow",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            // User Info
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = user.username,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = user.email,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }

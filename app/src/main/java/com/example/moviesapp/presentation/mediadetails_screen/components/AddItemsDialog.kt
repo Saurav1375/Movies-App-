@@ -1,10 +1,13 @@
 package com.example.moviesapp.presentation.mediadetails_screen.components
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -12,11 +15,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.Movie
 import androidx.compose.material3.BasicAlertDialog
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -31,6 +37,7 @@ import com.example.moviesapp.presentation.mediadetails_screen.components.dialogC
 import com.example.moviesapp.presentation.mediadetails_screen.components.dialogComponents.OtherMediaView
 import com.example.moviesapp.presentation.mediadetails_screen.components.dialogComponents.WatchListAddView
 
+@SuppressLint("StateFlowValueCalledInComposition")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddItemsDialog(
@@ -42,6 +49,8 @@ fun AddItemsDialog(
     onDismiss: () -> Unit
 ) {
 
+    val selectedListIds by viewModel.selectedListIds.collectAsState()
+    println("all: $mediaLists")
     BasicAlertDialog(
         modifier = Modifier
             .background(
@@ -79,16 +88,24 @@ fun AddItemsDialog(
                 mediaType = mediaLists.firstOrNull { it.id == userId+"WATCHED"},
             )
 
-
-            TextButton(
-                onClick = { viewModel.OnEvent(MediaDetailsEvent.OnAddClick) }
-            ) {
-                Text(
-                    text = "Add",
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyLarge
-                )
+            if(selectedListIds.isNotEmpty()) {
+                TextButton(
+                    modifier = Modifier.padding(16.dp).width(80.dp),
+                    onClick = {
+                        viewModel.OnEvent(MediaDetailsEvent.OnAddClick)
+                        viewModel.selectedListIds.value = emptyList()
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.textButtonColors(MaterialTheme.colorScheme.primary),
+                ) {
+                    Text(
+                        text = "Add",
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
+
         }
     }
 }

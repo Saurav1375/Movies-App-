@@ -44,7 +44,6 @@ fun MovieAppNavigation(
                                 saveState = true
                             }
                             launchSingleTop = true
-                            restoreState = true
                         }
                     }
                 },

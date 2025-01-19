@@ -1,4 +1,4 @@
-package com.example.moviesapp.presentation.profile_screen
+package com.example.moviesapp.presentation.profile_screen.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,8 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.moviesapp.domain.model.Media
-import com.example.moviesapp.domain.model.Movie
-import com.example.moviesapp.presentation.home_screen.components.MovieViewItem
 import com.example.moviesapp.presentation.home_screen.components.ShimmerEffect
 
 @Composable
@@ -35,7 +33,7 @@ fun MediaSection(
             }
         }
         else{
-            items(items, key = { it.toString() }) { media ->
+            items(items.distinct(), key = {it.toString()}) { media ->
                 MediaItemView(
                     item = media, modifier = Modifier
                         .size(120.dp, 205.dp)
